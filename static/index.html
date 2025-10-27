@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Anki - Language Learning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .nav-tab {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .nav-tab:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .card-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .flashcard {
+            perspective: 1000px;
+            min-height: 300px;
+            margin-bottom: 30px;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            min-height: 300px;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .flashcard-inner.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            min-height: 300px;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            font-size: 2em;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .flashcard-front {
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .flashcard-back {
+            background: #667eea;
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        .review-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .review-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-again {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-hard {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-good {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-easy {
+            background: #3498db;
+            color: white;
+        }
+
+        .review-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button[type="submit"], .btn-primary {
+            background: #667eea;
+            color: white;
+            padding: 12px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        button[type="submit"]:hover, .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-list {
+            list-style: none;
+        }
+
+        .card-item {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        .card-front-text {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .card-back-text {
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .card-meta {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .deck-selector {
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+        }
+
+        .stats h3 {
+            margin-bottom: 10px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+
+        .success-message {
+            background: #2ecc71;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Simple Anki</h1>
+            <p>Language Learning Flashcards</p>
+        </header>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showView('study')">Study</button>
+            <button class="nav-tab" onclick="showView('add')">Add Cards</button>
+            <button class="nav-tab" onclick="showView('manage')">Manage</button>
+        </div>
+
+        <!-- Study View -->
+        <div id="study-view" class="view active">
+            <div class="stats">
+                <h3>Cards Due: <span id="due-count">0</span></h3>
+                <div class="deck-selector">
+                    <select id="study-deck" onchange="loadDueCards()">
+                        <option value="">All Decks</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card-container" id="study-container">
+                <div class="empty-state">
+                    <h3>No cards due for review</h3>
+                    <p>Great job! Check back later or add more cards.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Card View -->
+        <div id="add-view" class="view">
+            <div class="card-container">
+                <h2 style="margin-bottom: 20px;">Add New Card</h2>
+                <div id="success-message" class="success-message hidden">
+                    Card added successfully!
+                </div>
+                <form id="add-card-form">
+                    <div class="form-group">
+                        <label for="deck-name">Deck Name</label>
+                        <input type="text" id="deck-name" list="deck-suggestions" placeholder="e.g., Spanish Vocabulary" required>
+                        <datalist id="deck-suggestions"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="card-front">Front (Word/Question)</label>
+                        <textarea id="card-front" placeholder="e.g., Hello" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="card-back">Back (Translation/Answer)</label>
+                        <textarea id="card-back" placeholder="e.g., Hola" required></textarea>
+                    </div>
+                    <button type="submit">Add Card</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Manage View -->
+        <div id="manage-view" class="view">
+            <div class="card-container">
+                <h2 style="margin-bottom: 20px;">Manage Cards</h2>
+                <div class="deck-selector" style="margin-bottom: 20px;">
+                    <label for="manage-deck">Filter by Deck:</label>
+                    <select id="manage-deck" onchange="loadAllCards()">
+                        <option value="">All Decks</option>
+                    </select>
+                </div>
+                <ul id="card-list" class="card-list">
+                    <!-- Cards will be loaded here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentCards = [];
+        let currentCardIndex = 0;
+        let isFlipped = false;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDecks();
+            loadDueCards();
+
+            document.getElementById('add-card-form').addEventListener('submit', handleAddCard);
+        });
+
+        // Navigation
+        function showView(viewName) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+            document.getElementById(`${viewName}-view`).classList.add('active');
+            event.target.classList.add('active');
+
+            if (viewName === 'study') {
+                loadDueCards();
+            } else if (viewName === 'manage') {
+                loadAllCards();
+            } else if (viewName === 'add') {
+                loadDecks();
+            }
+        }
+
+        // API calls
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                alert('An error occurred. Please try again.');
+                throw error;
+            }
+        }
+
+        // Load decks
+        async function loadDecks() {
+            const decks = await apiCall('/api/decks');
+
+            const selects = [
+                document.getElementById('study-deck'),
+                document.getElementById('manage-deck')
+            ];
+
+            selects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">All Decks</option>';
+                decks.forEach(deck => {
+                    const option = document.createElement('option');
+                    option.value = deck;
+                    option.textContent = deck;
+                    select.appendChild(option);
+                });
+                select.value = currentValue;
+            });
+
+            // Update datalist for deck suggestions
+            const datalist = document.getElementById('deck-suggestions');
+            datalist.innerHTML = '';
+            decks.forEach(deck => {
+                const option = document.createElement('option');
+                option.value = deck;
+                datalist.appendChild(option);
+            });
+        }
+
+        // Add card
+        async function handleAddCard(e) {
+            e.preventDefault();
+
+            const card = {
+                deck_name: document.getElementById('deck-name').value,
+                front: document.getElementById('card-front').value,
+                back: document.getElementById('card-back').value
+            };
+
+            await apiCall('/api/cards', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(card)
+            });
+
+            // Show success message
+            const successMsg = document.getElementById('success-message');
+            successMsg.classList.remove('hidden');
+            setTimeout(() => successMsg.classList.add('hidden'), 3000);
+
+            // Reset form
+            document.getElementById('add-card-form').reset();
+            loadDecks();
+        }
+
+        // Load due cards for study
+        async function loadDueCards() {
+            const deck = document.getElementById('study-deck').value;
+            const url = deck ? `/api/review?deck=${encodeURIComponent(deck)}&limit=20` : '/api/review?limit=20';
+
+            currentCards = await apiCall(url);
+            currentCardIndex = 0;
+            isFlipped = false;
+
+            document.getElementById('due-count').textContent = currentCards.length;
+
+            if (currentCards.length > 0) {
+                displayCurrentCard();
+            } else {
+                document.getElementById('study-container').innerHTML = `
+                    <div class="empty-state">
+                        <h3>No cards due for review</h3>
+                        <p>Great job! Check back later or add more cards.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display current card
+        function displayCurrentCard() {
+            if (currentCardIndex >= currentCards.length) {
+                document.getElementById('study-container').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Review Complete!</h3>
+                        <p>You've reviewed all due cards. Great work!</p>
+                        <button class="btn-primary" onclick="loadDueCards()">Check for More</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const card = currentCards[currentCardIndex];
+            isFlipped = false;
+
+            document.getElementById('study-container').innerHTML = `
+                <div class="flashcard">
+                    <div class="flashcard-inner" onclick="flipCard()">
+                        <div class="flashcard-front">
+                            <div>${escapeHtml(card.front)}</div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div>${escapeHtml(card.back)}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="review-buttons" style="display: none;" id="review-buttons">
+                    <button class="review-btn btn-again" onclick="submitReview(1)">Again</button>
+                    <button class="review-btn btn-hard" onclick="submitReview(2)">Hard</button>
+                    <button class="review-btn btn-good" onclick="submitReview(3)">Good</button>
+                    <button class="review-btn btn-easy" onclick="submitReview(4)">Easy</button>
+                </div>
+            `;
+        }
+
+        // Flip card
+        function flipCard() {
+            const inner = document.querySelector('.flashcard-inner');
+            inner.classList.toggle('flipped');
+            isFlipped = !isFlipped;
+
+            if (isFlipped) {
+                document.getElementById('review-buttons').style.display = 'flex';
+            }
+        }
+
+        // Submit review
+        async function submitReview(score) {
+            const card = currentCards[currentCardIndex];
+
+            await apiCall('/api/review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ card_id: card.id, score: score })
+            });
+
+            currentCardIndex++;
+            displayCurrentCard();
+        }
+
+        // Load all cards
+        async function loadAllCards() {
+            const deck = document.getElementById('manage-deck').value;
+            const url = deck ? `/api/cards?deck=${encodeURIComponent(deck)}` : '/api/cards';
+
+            const cards = await apiCall(url);
+            const listElement = document.getElementById('card-list');
+
+            if (cards.length === 0) {
+                listElement.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No cards yet</h3>
+                        <p>Add some cards to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listElement.innerHTML = cards.map(card => `
+                <li class="card-item">
+                    <div class="card-content">
+                        <div class="card-front-text">${escapeHtml(card.front)}</div>
+                        <div class="card-back-text">${escapeHtml(card.back)}</div>
+                        <div class="card-meta">
+                            Deck: ${escapeHtml(card.deck_name)} |
+                            Next review: ${new Date(card.next_review).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-delete" onclick="deleteCard(${card.id})">Delete</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // Delete card
+        async function deleteCard(id) {
+            if (!confirm('Are you sure you want to delete this card?')) {
+                return;
+            }
+
+            await apiCall(`/api/cards/${id}`, { method: 'DELETE' });
+            loadAllCards();
+            loadDecks();
+        }
+
+        // Utility: escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
