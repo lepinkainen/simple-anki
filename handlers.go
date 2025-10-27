@@ -174,3 +174,74 @@ func ReviewHandler(w http.ResponseWriter, r *http.Request) {
 		respondError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
+
+// ImportRequest represents the JSON structure for importing cards
+type ImportRequest struct {
+	DeckName string `json:"deck_name"`
+	Cards    []struct {
+		Front string `json:"front"`
+		Back  string `json:"back"`
+	} `json:"cards"`
+}
+
+// ImportHandler handles /api/import
+func ImportHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		respondError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var importReq ImportRequest
+	if err := json.NewDecoder(r.Body).Decode(&importReq); err != nil {
+		respondError(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Validate deck_name
+	if importReq.DeckName == "" {
+		respondError(w, "deck_name is required and cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	// Validate cards array
+	if len(importReq.Cards) == 0 {
+		respondError(w, "cards array is required and must contain at least one card", http.StatusBadRequest)
+		return
+	}
+
+	// Validate and import each card
+	importedCount := 0
+	for i, cardData := range importReq.Cards {
+		// Validate front and back
+		if cardData.Front == "" {
+			respondError(w, "Card at index "+strconv.Itoa(i)+" has empty 'front' field", http.StatusBadRequest)
+			return
+		}
+		if cardData.Back == "" {
+			respondError(w, "Card at index "+strconv.Itoa(i)+" has empty 'back' field", http.StatusBadRequest)
+			return
+		}
+
+		// Create card
+		card := Card{
+			DeckName: importReq.DeckName,
+			Front:    cardData.Front,
+			Back:     cardData.Back,
+		}
+
+		if err := CreateCard(&card); err != nil {
+			respondError(w, "Failed to import card at index "+strconv.Itoa(i)+": "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		importedCount++
+	}
+
+	// Success response
+	respondJSON(w, map[string]interface{}{
+		"success":        true,
+		"imported_count": importedCount,
+		"deck_name":      importReq.DeckName,
+		"message":        "Successfully imported " + strconv.Itoa(importedCount) + " cards into deck '" + importReq.DeckName + "'",
+	}, http.StatusCreated)
+}
