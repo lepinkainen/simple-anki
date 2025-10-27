@@ -307,6 +307,7 @@
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="showView('study')">Study</button>
             <button class="nav-tab" onclick="showView('add')">Add Cards</button>
+            <button class="nav-tab" onclick="showView('import')">Import</button>
             <button class="nav-tab" onclick="showView('manage')">Manage</button>
         </div>
 
@@ -352,6 +353,49 @@
                     </div>
                     <button type="submit">Add Card</button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Import View -->
+        <div id="import-view" class="view">
+            <div class="card-container">
+                <h2 style="margin-bottom: 20px;">Import Cards from JSON</h2>
+                <div id="import-success" class="success-message hidden"></div>
+                <div id="import-error" class="success-message hidden" style="background: #e74c3c;"></div>
+
+                <div class="form-group">
+                    <label for="import-json">Paste JSON or upload file:</label>
+                    <textarea id="import-json" placeholder='{"deck_name": "Spanish Vocabulary", "cards": [{"front": "hello", "back": "hola"}]}' style="min-height: 200px; font-family: monospace;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="import-file">Or upload JSON file:</label>
+                    <input type="file" id="import-file" accept=".json" onchange="handleFileUpload(event)">
+                </div>
+
+                <button class="btn-primary" onclick="handleImport()">Import Cards</button>
+
+                <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <h3 style="margin-bottom: 15px; color: #333;">JSON Format Example:</h3>
+                    <pre style="background: white; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 0.9em; color: #333;">{
+  "deck_name": "Spanish Vocabulary - Chapter 1",
+  "cards": [
+    {
+      "front": "hello",
+      "back": "hola"
+    },
+    {
+      "front": "goodbye",
+      "back": "adiós"
+    }
+  ]
+}</pre>
+                    <p style="margin-top: 15px; color: #666;">
+                        <strong>Tip:</strong> Take a photo of your vocabulary page, share it with an LLM along with the
+                        <a href="/static/IMPORT_FORMAT.md" target="_blank" style="color: #667eea;">format specification</a>,
+                        and it will generate the JSON for you!
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -610,6 +654,71 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Handle file upload
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('import-json').value = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        // Handle import
+        async function handleImport() {
+            const jsonText = document.getElementById('import-json').value.trim();
+            const successMsg = document.getElementById('import-success');
+            const errorMsg = document.getElementById('import-error');
+
+            // Hide previous messages
+            successMsg.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+
+            if (!jsonText) {
+                errorMsg.textContent = 'Please paste JSON or upload a file';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // Validate JSON
+                const data = JSON.parse(jsonText);
+
+                // Call import API
+                const response = await fetch('/api/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: jsonText
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Import failed');
+                }
+
+                // Show success message
+                successMsg.textContent = result.message;
+                successMsg.classList.remove('hidden');
+
+                // Clear the textarea
+                document.getElementById('import-json').value = '';
+                document.getElementById('import-file').value = '';
+
+                // Reload decks
+                loadDecks();
+
+                // Auto-hide success message after 5 seconds
+                setTimeout(() => successMsg.classList.add('hidden'), 5000);
+
+            } catch (error) {
+                errorMsg.textContent = 'Error: ' + error.message;
+                errorMsg.classList.remove('hidden');
+            }
         }
     </script>
 </body>

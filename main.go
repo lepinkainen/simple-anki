@@ -29,6 +29,7 @@ func main() {
 	mux.HandleFunc("/api/cards/", CardHandler)
 	mux.HandleFunc("/api/decks", DecksHandler)
 	mux.HandleFunc("/api/review", ReviewHandler)
+	mux.HandleFunc("/api/import", ImportHandler)
 
 	// Serve static files from embedded filesystem
 	mux.Handle("/", http.FileServer(http.FS(staticFiles)))
